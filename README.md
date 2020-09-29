@@ -1,11 +1,12 @@
-This repo contains a sample controller automatically labelling nodes based on predefined rules
+This repo contains a sample controller automatically labelling nodes based on predefined regex rules matching node name.
 
 ## Configuration
 
-A predefined configmap named `labelrules` needs to be created in *default* namespace. For instance, you can use the following:
+A configmap named needs to be created to define rules. For instance, you can use the following:
 
 ```
-kubectl create configmap -n default labelrules --from-file=rules1.properties --from-file=rules2.properties
+NAMESPACE="default"
+kubectl create configmap -n $NAMESPACE labelrules --from-file=rules1.properties --from-file=rules2.properties
 ```
 
 The rule file has the following format:
@@ -18,9 +19,23 @@ labels:
 
 That is, rule is indicated as a regex matching the node name, and a list of labels will be added (on top of the existing ones for the node)
 
+### Using a specific configmap or specific namespace
+
+- The name of the config map to use can be specified with the CONFIG_MAP env variable. It defaults to `labelrules` if the variable is not found.
+- The namespace from where autolabeller deployment runs is used to gather the configmap, otherwise one can use the NAMESPACE env variable when running in standalone mode. It defaults to `default` if the variable is not found.
+
+
 ## Running
 
-### For development/testing
+### dev mode
+
+You will need python3 and [kubernetes client python](https://github.com/kubernetes-client/python) that you can either install with pip or your favorite package manager. Then, provided you have set your KUBECONFIG environment variable, just run:
+
+```
+python3 controller.py
+```
+
+### standalone mode
 
 You can run against an existing cluster after setting your KUBECONFIG env variable with the following invocation
 
@@ -33,13 +48,15 @@ podman run -v $(dirname $KUBECONFIG):/kubeconfig -e KUBECONFIG=/kubeconfig/kubec
 #### On Kubernetes
 
 ```
-kubectl create clusterrolebinding autolabeller-admin-binding --clusterrole=cluster-admin --serviceaccount=default:default --namespace=default
-kubectl create -f deployment.yaml -n default
+NAMESPACE="default"
+kubectl create clusterrolebinding autolabeller-admin-binding --clusterrole=cluster-admin --serviceaccount=$NAMESPACE:default --namespace=$NAMESPACE
+kubectl create -f deployment.yaml -n $NAMESPACE
 ```
 
 #### On Openshift
 
 ```
-oc adm policy add-cluster-role-to-user cluster-admin -z default -n default
-oc new-app karmab/autolabeller -n default
+NAMESPACE="default"
+oc adm policy add-cluster-role-to-user cluster-admin -z default -n $NAMESPACE
+oc new-app karmab/autolabeller -n $NAMESPACE
 ```
