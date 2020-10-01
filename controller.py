@@ -46,8 +46,13 @@ if __name__ == "__main__":
             name_rules[newname] = newlabels
         elif newmatchlabels is not None:
             print("Handling matchlabels rule %s with labels %s" % (newmatchlabels, newlabels))
-            newmatchlabelsstring = ','.join(newmatchlabels)
-            label_rules[newmatchlabelsstring] = newlabels
+            matchlabels = []
+            for x in newmatchlabels:
+                if isinstance(x, str):
+                    matchlabels.append({x: ""})
+                elif isinstance(x, dict):
+                    matchlabels.append(x)
+            label_rules[entry] = {'matchlabels': matchlabels, 'labels': newlabels}
     print("Starting main loop...")
     while True:
         stream = watch.Watch().stream(v1.list_node, timeout_seconds=10)
@@ -61,9 +66,16 @@ if __name__ == "__main__":
                 if re.match(name, node_name):
                     labels = name_rules[name]
                     missing_labels.extend([label for label in labels if label not in node_labels])
-            for matchlabels in label_rules:
-                if not [label for label in matchlabels.split(',') if label not in node_labels]:
-                    labels = label_rules[matchlabels]
+            mismatch = False
+            for entry in label_rules:
+                matchlabels = label_rules[entry]['matchlabels']
+                labels = label_rules[entry]['labels']
+                for label in matchlabels:
+                    labelkey = list(label)[0]
+                    if labelkey not in node_labels or label[labelkey] != node_labels[labelkey]:
+                        mismatch = True
+                        break
+                if not mismatch:
                     missing_labels.extend([label for label in labels if label not in node_labels])
             if missing_labels:
                 print("Adding labels %s to %s" % (','.join(missing_labels), node_name))
