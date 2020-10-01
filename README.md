@@ -1,4 +1,6 @@
-This repo contains a sample controller automatically labelling nodes based on predefined regex rules matching node name.
+This repo contains a sample controller automatically labelling nodes based on either:
+- predefined regex rules matching node name.
+- a set of matching labels already present in the node
 
 ## Configuration
 
@@ -9,15 +11,28 @@ NAMESPACE="default"
 kubectl create configmap -n $NAMESPACE labelrules --from-file=rules1.properties --from-file=rules2.properties
 ```
 
-The rule file has the following format:
+### Name based rules
+
+Rule is indicated as a regex matching the node name, and a list of labels to add.
 
 ```
-rule: .*master.*
+name: .*prod-worker.*
 labels:
-- node-role.kubernetes.io/supermaster
+- node-role.kubernetes.io/megaprod
+- ptp/master
 ```
 
-That is, rule is indicated as a regex matching the node name, and a list of labels will be added (on top of the existing ones for the node)
+### Matching label based rules
+
+Rule is indicated as a list of matchlabels to be found in the node matching, and a list of labels to add.
+
+```
+matchlabels:
+- node-role.kubernetes.io/masterx
+- node-role.kubernetes.io/mastery
+labels:
+- node-role.kubernetes.io/mindmaster
+```
 
 ### Using a specific configmap or specific namespace
 

@@ -25,20 +25,29 @@ if __name__ == "__main__":
         else:
             print(e)
         print("No rules defined, using default worker one")
-        config_map_data = {'rules1.properties': 'rule: .*worker.*\nlabels:\n- node-role.kubernetes.io/worker=\n'}
-    rules = {}
+        config_map_data = {'rules1.properties': 'name: .*worker.*\nlabels:\n- node-role.kubernetes.io/worker=\n'}
+    name_rules = {}
+    label_rules = {}
     if not config_map_data:
         print("No rules defined, using default worker one")
-        config_map_data = {'rules1.properties': 'rule: .*worker.*\nlabels:\n- node-role.kubernetes.io/worker=\n'}
+        config_map_data = {'rules1.properties': 'name: .*worker.*\nlabels:\n- node-role.kubernetes.io/worker=\n'}
     for entry in config_map_data:
         try:
             data = yaml.safe_load(config_map_data[entry])
         except yaml.scanner.ScannerError as err:
             print("Incorrect configmap. Leaving")
             os._exit(1)
-        newrule, newlabels = data['rule'], data['labels']
-        print("Handling rule %s with labels %s" % (newrule, newlabels))
-        rules[newrule] = newlabels
+        newname, newlabels, newmatchlabels = data.get('name'), data.get('labels'), data.get('matchlabels')
+        if newlabels is None:
+            print("No valid labels found in rule %s.Ignoring" % entry)
+            continue
+        elif newname is not None:
+            print("Handling name rule %s with labels %s" % (newname, newlabels))
+            name_rules[newname] = newlabels
+        elif newmatchlabels is not None:
+            print("Handling matchlabels rule %s with labels %s" % (newmatchlabels, newlabels))
+            newmatchlabelsstring = ','.join(newmatchlabels)
+            label_rules[newmatchlabelsstring] = newlabels
     print("Starting main loop...")
     while True:
         stream = watch.Watch().stream(v1.list_node, timeout_seconds=10)
@@ -47,13 +56,18 @@ if __name__ == "__main__":
             obj_dict = obj.to_dict()
             node_name = obj_dict['metadata']['name']
             node_labels = obj_dict['metadata']['labels']
-            for rule in rules:
-                if re.match(rule, node_name):
-                    labels = rules[rule]
-                    missing_labels = [label for label in labels if label not in node_labels]
-                    if missing_labels:
-                        print("Adding labels %s to %s" % (','.join(missing_labels), node_name))
-                        new_labels = {k: '' for k in missing_labels}
-                        node_labels.update(new_labels)
-                        obj.metadata.labels = node_labels
-                        v1.replace_node(node_name, obj)
+            missing_labels = []
+            for name in name_rules:
+                if re.match(name, node_name):
+                    labels = name_rules[name]
+                    missing_labels.extend([label for label in labels if label not in node_labels])
+            for matchlabels in label_rules:
+                if not [label for label in matchlabels.split(',') if label not in node_labels]:
+                    labels = label_rules[matchlabels]
+                    missing_labels.extend([label for label in labels if label not in node_labels])
+            if missing_labels:
+                print("Adding labels %s to %s" % (','.join(missing_labels), node_name))
+                new_labels = {k: '' for k in missing_labels}
+                node_labels.update(new_labels)
+                obj.metadata.labels = node_labels
+                v1.replace_node(node_name, obj)
