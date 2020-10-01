@@ -1,6 +1,6 @@
 This repo contains a sample controller automatically labelling nodes based on either:
 - predefined regex rules matching node name.
-- a set of matching labels already present in the node
+- a set of matching labels (with their associated value) present on the node
 
 ## Configuration
 
@@ -13,13 +13,13 @@ kubectl create configmap -n $NAMESPACE labelrules --from-file=rules1.properties 
 
 ### Name based rules
 
-Rule is indicated as a regex matching the node name, and a list of labels to add.
+Rule is indicated as a regex matching the node name, and a list of labels to add (either a string or a dict entry)
 
 ```
 name: .*prod-worker.*
 labels:
 - node-role.kubernetes.io/megaprod
-- ptp/master
+- competent: indeed
 ```
 
 ### Matching label based rules
@@ -38,7 +38,6 @@ labels:
 
 - The name of the config map to use can be specified with the CONFIG_MAP env variable. It defaults to `labelrules` if the variable is not found.
 - The namespace from where autolabeller deployment runs is used to gather the configmap, otherwise one can use the NAMESPACE env variable when running in standalone mode. It defaults to `default` if the variable is not found.
-
 
 ## Running
 

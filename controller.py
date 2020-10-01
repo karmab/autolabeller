@@ -37,22 +37,30 @@ if __name__ == "__main__":
         except yaml.scanner.ScannerError as err:
             print("Incorrect configmap. Leaving")
             os._exit(1)
-        newname, newlabels, newmatchlabels = data.get('name'), data.get('labels'), data.get('matchlabels')
+        newname, newmatchlabels, newlabels = data.get('name'), data.get('matchlabels'), data.get('labels')
         if newlabels is None:
             print("No valid labels found in rule %s.Ignoring" % entry)
             continue
-        elif newname is not None:
-            print("Handling name rule %s with labels %s" % (newname, newlabels))
-            name_rules[newname] = newlabels
-        elif newmatchlabels is not None:
-            print("Handling matchlabels rule %s with labels %s" % (newmatchlabels, newlabels))
+        else:
+            goodlabels = {}
+            for label in newlabels:
+                if isinstance(label, str):
+                    goodlabels[label] = ''
+                elif isinstance(label, dict):
+                    for k in label:
+                        goodlabels[k] = label[k]
+        if newname is not None:
+            print("Handling name rule %s with labels %s" % (newname, goodlabels))
+            name_rules[newname] = goodlabels
+        if newmatchlabels is not None:
+            print("Handling matchlabels rule %s with labels %s" % (newmatchlabels, goodlabels))
             matchlabels = []
             for x in newmatchlabels:
                 if isinstance(x, str):
                     matchlabels.append({x: ""})
                 elif isinstance(x, dict):
                     matchlabels.append(x)
-            label_rules[entry] = {'matchlabels': matchlabels, 'labels': newlabels}
+            label_rules[entry] = {'matchlabels': matchlabels, 'labels': goodlabels}
     print("Starting main loop...")
     while True:
         stream = watch.Watch().stream(v1.list_node, timeout_seconds=10)
@@ -61,25 +69,24 @@ if __name__ == "__main__":
             obj_dict = obj.to_dict()
             node_name = obj_dict['metadata']['name']
             node_labels = obj_dict['metadata']['labels']
-            missing_labels = []
+            add_labels = {}
             for name in name_rules:
                 if re.match(name, node_name):
-                    labels = name_rules[name]
-                    missing_labels.extend([label for label in labels if label not in node_labels])
+                    add_labels.update(name_rules[name])
             mismatch = False
             for entry in label_rules:
                 matchlabels = label_rules[entry]['matchlabels']
-                labels = label_rules[entry]['labels']
                 for label in matchlabels:
                     labelkey = list(label)[0]
                     if labelkey not in node_labels or label[labelkey] != node_labels[labelkey]:
                         mismatch = True
                         break
                 if not mismatch:
-                    missing_labels.extend([label for label in labels if label not in node_labels])
-            if missing_labels:
-                print("Adding labels %s to %s" % (','.join(missing_labels), node_name))
-                new_labels = {k: '' for k in missing_labels}
-                node_labels.update(new_labels)
-                obj.metadata.labels = node_labels
-                v1.replace_node(node_name, obj)
+                    add_labels.update(label_rules[entry]['labels'])
+            if add_labels:
+                missing_labels = {label: add_labels[label] for label in add_labels if label not in node_labels or
+                                  node_labels[label] != add_labels[label]}
+                if missing_labels:
+                    print("Adding labels %s to %s" % (missing_labels, node_name))
+                    body = {"metadata": {"labels": missing_labels}}
+                    v1.patch_node(node_name, body)
