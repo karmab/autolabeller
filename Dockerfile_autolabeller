@@ -10,7 +10,7 @@ LABEL name="karmab/autolabeller" \
       summary="Node labeller based on rules" \
       description="Node labeller based on rules stored in a config map"
 
-RUN apk add python3
+RUN apk add python3 gcc musl-dev python3-dev
 RUN pip3 install kubernetes
 ADD autolabeller.py /
 
