@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autolabeller
+  labels:
+    app: autolabeller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: autolabeller
+  template:
+    metadata:
+      labels:
+        app: autolabeller
+    spec:
+      containers:
+      - name: autolabeller
+        image: karmab/autolabeller:latest

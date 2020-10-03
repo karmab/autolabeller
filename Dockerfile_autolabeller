@@ -12,6 +12,6 @@ LABEL name="karmab/autolabeller" \
 
 RUN apk add python3
 RUN pip3 install kubernetes
-ADD controller.py /
+ADD autolabeller.py /
 
-CMD [ "python3", "/controller.py" ]
+CMD [ "python3", "/autolabeller.py" ]

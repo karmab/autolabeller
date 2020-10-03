@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: autolabeller-deployment
+  name: autosigner
   labels:
-    app: autolabeller
+    app: autosigner
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: autolabeller
+      app: autosigner
   template:
     metadata:
       labels:
-        app: autolabeller
+        app: autosigner
     spec:
       containers:
-      - name: autolabeller
-        image: karmab/autolabeller:latest
+      - name: autosigner
+        image: karmab/autosigner:latest
