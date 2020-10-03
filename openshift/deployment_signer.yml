@@ -1,0 +1,78 @@
+apiVersion: v1
+items:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: autosigner
+      app.kubernetes.io/component: autosigner
+      app.kubernetes.io/instance: autosigner
+    name: autosigner
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - annotations:
+        openshift.io/imported-from: karmab/autosigner
+      from:
+        kind: DockerImage
+        name: karmab/autosigner
+      generation: null
+      importPolicy: {}
+      name: latest
+      referencePolicy:
+        type: ""
+  status:
+    dockerImageRepository: ""
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: autosigner
+      app.kubernetes.io/component: autosigner
+      app.kubernetes.io/instance: autosigner
+    name: autosigner
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: autosigner
+    strategy:
+      resources: {}
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: OpenShiftNewApp
+        creationTimestamp: null
+        labels:
+          deploymentconfig: autosigner
+      spec:
+        containers:
+        - image: karmab/autosigner
+          name: autosigner
+          resources: {}
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - autosigner
+        from:
+          kind: ImageStreamTag
+          name: autosigner:latest
+      type: ImageChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+kind: List
+metadata: {}

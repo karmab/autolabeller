@@ -15,7 +15,7 @@ if __name__ == "__main__":
     v1 = client.CoreV1Api()
     try:
         k8sfile = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
-        namespace = os.open(k8sfile, 'r').read() if os.path.exists(k8sfile) else os.environ.get('NAMESPACE', 'default')
+        namespace = open(k8sfile, 'r').read() if os.path.exists(k8sfile) else os.environ.get('NAMESPACE', 'default')
         config_map_name = os.environ.get('CONFIG_MAP', 'autorules')
         config_map = v1.read_namespaced_config_map(namespace=namespace, name=config_map_name)
         config_map_data = config_map.to_dict().get('data', {})

@@ -1,0 +1,78 @@
+apiVersion: v1
+items:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: autolabeller
+      app.kubernetes.io/component: autolabeller
+      app.kubernetes.io/instance: autolabeller
+    name: autolabeller
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - annotations:
+        openshift.io/imported-from: karmab/autolabeller
+      from:
+        kind: DockerImage
+        name: karmab/autolabeller
+      generation: null
+      importPolicy: {}
+      name: latest
+      referencePolicy:
+        type: ""
+  status:
+    dockerImageRepository: ""
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    labels:
+      app: autolabeller
+      app.kubernetes.io/component: autolabeller
+      app.kubernetes.io/instance: autolabeller
+    name: autolabeller
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: autolabeller
+    strategy:
+      resources: {}
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: OpenShiftNewApp
+        creationTimestamp: null
+        labels:
+          deploymentconfig: autolabeller
+      spec:
+        containers:
+        - image: karmab/autolabeller
+          name: autolabeller
+          resources: {}
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - autolabeller
+        from:
+          kind: ImageStreamTag
+          name: autolabeller:latest
+      type: ImageChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+kind: List
+metadata: {}
