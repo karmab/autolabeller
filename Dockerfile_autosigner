@@ -11,7 +11,7 @@ LABEL name="karmab/autosigner" \
       description="Node signer based on rules stored in a config map"
 
 RUN apk add python3 gcc musl-dev python3-dev libffi-dev openssl-dev
-RUN pip3 install kubernetes cryptography
+RUN pip3 install kubernetes pyOpenSSL
 ADD autosigner.py /
 
-CMD [ "python3", "/autosigner.py" ]
+CMD [ "python3", "-u", "/autosigner.py" ]

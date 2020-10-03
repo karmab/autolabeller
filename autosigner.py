@@ -41,7 +41,9 @@ if __name__ == "__main__":
             print("Incorrect configmap. Leaving")
             os._exit(1)
         if 'name' in data:
-            name_rules.append(data['name'])
+            newname = data['name']
+            print("Handling name rule %s " % newname)
+            name_rules.append(newname)
     print("Starting main loop...")
     while True:
         stream = watch.Watch().stream(certs_api.list_certificate_signing_request, timeout_seconds=10)
