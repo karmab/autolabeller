@@ -57,7 +57,7 @@ if __name__ == "__main__":
             name_rules.append(newname)
     if not allowed_networks:
         print("No specific allowed_networks defined. No check on ips will be made" % allowed_networks)
-    print("Starting main loop...")
+    print("Starting main signing loop...")
     while True:
         stream = watch.Watch().stream(certs_api.list_certificate_signing_request, timeout_seconds=10)
         for event in stream:
