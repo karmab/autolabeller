@@ -46,6 +46,6 @@ spec:
     spec:
       containers:
       - name: autosigner
-        image: karmab/autosigner:latest
+        image: quay.io/karmab/autosigner:latest
       - name: autolabeller
-        image: karmab/autolabeller:latest
+        image: quay.io/karmab/autolabeller:latest

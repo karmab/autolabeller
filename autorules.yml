@@ -46,4 +46,4 @@ spec:
     spec:
       containers:
       - name: autolabeller
-        image: karmab/autolabeller:latest
+        image: quay.io/karmab/autolabeller:latest
