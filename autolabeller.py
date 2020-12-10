@@ -61,7 +61,7 @@ if __name__ == "__main__":
                 elif isinstance(x, dict):
                     matchlabels.append(x)
             label_rules[entry] = {'matchlabels': matchlabels, 'labels': goodlabels}
-    print("Starting main loop...")
+    print("Starting main labeller loop...")
     while True:
         stream = watch.Watch().stream(v1.list_node, timeout_seconds=10)
         for event in stream:

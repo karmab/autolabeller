@@ -44,6 +44,10 @@ spec:
       labels:
         app: autoruler
     spec:
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
       containers:
       - name: autosigner
         image: quay.io/karmab/autosigner:latest
