@@ -6,63 +6,23 @@ import yaml
 from kubernetes import client, config, watch
 import os
 import re
+import threading
 
-if __name__ == "__main__":
-    if 'KUBERNETES_PORT' in os.environ:
-        config.load_incluster_config()
-    else:
-        config.load_kube_config()
-    configuration = client.Configuration()
-    configuration.assert_hostname = False
-    api_client = client.api_client.ApiClient(configuration=configuration)
-    v1 = client.CoreV1Api()
-    certs_api = client.CertificatesV1beta1Api()
-    try:
-        k8sfile = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
-        namespace = open(k8sfile, 'r').read() if os.path.exists(k8sfile) else os.environ.get('NAMESPACE', 'default')
-        config_map_name = os.environ.get('CONFIG_MAP', 'autorules')
-        config_map = v1.read_namespaced_config_map(namespace=namespace, name=config_map_name)
-        config_map_data = config_map.to_dict().get('data', {})
-    except Exception as e:
-        if e.status == 404:
-            print("Missing configmap %s in namespace %s" % (config_map_name, namespace))
-            config_map_data = {}
-        else:
-            print(e)
-            os._exit(0)
-    name_rules = []
-    allowed_networks = []
-    if not config_map_data:
-        print("No rules defined, using dummy worker one")
-        config_map_data = {'rules1.properties': 'name: .*worker.*\n'}
-    for entry in config_map_data:
-        try:
-            data = yaml.safe_load(config_map_data[entry])
-        except yaml.scanner.ScannerError as err:
-            print("Incorrect configmap. Leaving")
-            os._exit(1)
-        if 'name' in data:
-            newname = data['name']
-            print("Handling name rule %s " % newname)
-            name_rules.append(newname)
-        if 'allowed_networks' in data and isinstance(data['allowed_networks'], list):
-            allowed_networks = data['allowed_networks']
-            for network in allowed_networks:
-                try:
-                    ip_network(network)
-                except:
-                    print("Incorrect entry %s in allowed_network of configmap. Leaving" % network)
-                    os._exit(1)
-            print("Only allowing networks from %s" % allowed_networks)
-            name_rules.append(newname)
-    if not allowed_networks:
-        print("No specific allowed_networks defined. No check on ips will be made" % allowed_networks)
-    print("Starting main signing loop...")
+
+def watch_configmaps():
+    while True:
+        stream = watch.Watch().stream(v1.list_namespaced_config_map, namespace, timeout_seconds=10)
+        for event in stream:
+            if event["type"] == 'MODIFIED':
+                print("Exiting as configmap was changed")
+                os._exit(1)
+
+
+def watch_csrs():
     while True:
         stream = watch.Watch().stream(certs_api.list_certificate_signing_request, timeout_seconds=10)
         for event in stream:
             obj = event["object"]
-            operation = event['type']
             obj_dict = obj.to_dict()
             csr_name = obj_dict['metadata']['name']
             request = obj_dict['spec']['request']
@@ -132,3 +92,58 @@ if __name__ == "__main__":
                         certs_api.replace_certificate_signing_request_approval(csr_name, body)
                         break
                 continue
+
+
+if __name__ == "__main__":
+    if 'KUBERNETES_PORT' in os.environ:
+        config.load_incluster_config()
+    else:
+        config.load_kube_config()
+    configuration = client.Configuration()
+    configuration.assert_hostname = False
+    api_client = client.api_client.ApiClient(configuration=configuration)
+    v1 = client.CoreV1Api()
+    certs_api = client.CertificatesV1beta1Api()
+    try:
+        k8sfile = '/var/run/secrets/kubernetes.io/serviceaccount/namespace'
+        namespace = open(k8sfile, 'r').read() if os.path.exists(k8sfile) else os.environ.get('NAMESPACE', 'default')
+        config_map_name = os.environ.get('CONFIG_MAP', 'autorules')
+        config_map = v1.read_namespaced_config_map(namespace=namespace, name=config_map_name)
+        config_map_data = config_map.to_dict().get('data', {})
+    except Exception as e:
+        if e.status == 404:
+            print("Missing configmap %s in namespace %s" % (config_map_name, namespace))
+            config_map_data = {}
+        else:
+            print(e)
+            os._exit(0)
+    name_rules = []
+    allowed_networks = []
+    if not config_map_data:
+        print("No rules defined, using dummy worker one")
+        config_map_data = {'rules1.properties': 'name: .*worker.*\n'}
+    for entry in config_map_data:
+        try:
+            data = yaml.safe_load(config_map_data[entry])
+        except yaml.scanner.ScannerError as err:
+            print("Incorrect configmap. Leaving")
+            os._exit(1)
+        if 'name' in data:
+            newname = data['name']
+            print("Handling name rule %s " % newname)
+            name_rules.append(newname)
+        if 'allowed_networks' in data and isinstance(data['allowed_networks'], list):
+            allowed_networks = data['allowed_networks']
+            for network in allowed_networks:
+                try:
+                    ip_network(network)
+                except:
+                    print("Incorrect entry %s in allowed_network of configmap. Leaving" % network)
+                    os._exit(1)
+            print("Only allowing networks from %s" % allowed_networks)
+            name_rules.append(newname)
+    if not allowed_networks:
+        print("No specific allowed_networks defined. No check on ips will be made" % allowed_networks)
+    print("Starting main signing loop...")
+    threading.Thread(target=watch_csrs).start()
+    threading.Thread(target=watch_configmaps).start()
