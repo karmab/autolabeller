@@ -2,6 +2,47 @@ import yaml
 from kubernetes import client, config, watch
 import os
 import re
+import threading
+
+
+def watch_configmaps():
+    while True:
+        stream = watch.Watch().stream(v1.list_namespaced_config_map, namespace, timeout_seconds=10)
+        for event in stream:
+            if event["type"] == 'MODIFIED':
+                print("Exiting as configmap was changed")
+                os._exit(1)
+
+
+def watch_nodes():
+    while True:
+        stream = watch.Watch().stream(v1.list_node, timeout_seconds=10)
+        for event in stream:
+            obj = event["object"]
+            obj_dict = obj.to_dict()
+            node_name = obj_dict['metadata']['name']
+            node_labels = obj_dict['metadata']['labels']
+            add_labels = {}
+            for name in name_rules:
+                if re.match(name, node_name):
+                    add_labels.update(name_rules[name])
+            mismatch = False
+            for entry in label_rules:
+                matchlabels = label_rules[entry]['matchlabels']
+                for label in matchlabels:
+                    labelkey = list(label)[0]
+                    if labelkey not in node_labels or label[labelkey] != node_labels[labelkey]:
+                        mismatch = True
+                        break
+                if not mismatch:
+                    add_labels.update(label_rules[entry]['labels'])
+            if add_labels:
+                missing_labels = {label: add_labels[label] for label in add_labels if label not in node_labels or
+                                  node_labels[label] != add_labels[label]}
+                if missing_labels:
+                    print("Adding labels %s to %s" % (missing_labels, node_name))
+                    body = {"metadata": {"labels": missing_labels}}
+                    v1.patch_node(node_name, body)
 
 
 if __name__ == "__main__":
@@ -62,31 +103,5 @@ if __name__ == "__main__":
                     matchlabels.append(x)
             label_rules[entry] = {'matchlabels': matchlabels, 'labels': goodlabels}
     print("Starting main labeller loop...")
-    while True:
-        stream = watch.Watch().stream(v1.list_node, timeout_seconds=10)
-        for event in stream:
-            obj = event["object"]
-            obj_dict = obj.to_dict()
-            node_name = obj_dict['metadata']['name']
-            node_labels = obj_dict['metadata']['labels']
-            add_labels = {}
-            for name in name_rules:
-                if re.match(name, node_name):
-                    add_labels.update(name_rules[name])
-            mismatch = False
-            for entry in label_rules:
-                matchlabels = label_rules[entry]['matchlabels']
-                for label in matchlabels:
-                    labelkey = list(label)[0]
-                    if labelkey not in node_labels or label[labelkey] != node_labels[labelkey]:
-                        mismatch = True
-                        break
-                if not mismatch:
-                    add_labels.update(label_rules[entry]['labels'])
-            if add_labels:
-                missing_labels = {label: add_labels[label] for label in add_labels if label not in node_labels or
-                                  node_labels[label] != add_labels[label]}
-                if missing_labels:
-                    print("Adding labels %s to %s" % (missing_labels, node_name))
-                    body = {"metadata": {"labels": missing_labels}}
-                    v1.patch_node(node_name, body)
+    threading.Thread(target=watch_nodes).start()
+    threading.Thread(target=watch_configmaps).start()
