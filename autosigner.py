@@ -13,7 +13,10 @@ def watch_configmaps():
     while True:
         stream = watch.Watch().stream(v1.list_namespaced_config_map, namespace, timeout_seconds=10)
         for event in stream:
-            if event["type"] == 'MODIFIED':
+            obj = event["object"]
+            obj_dict = obj.to_dict()
+            current_config_map_name = obj_dict['metadata']['name']
+            if current_config_map_name == config_map_name and event["type"] == 'MODIFIED':
                 print("Exiting as configmap was changed")
                 os._exit(1)
 
