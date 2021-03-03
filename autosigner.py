@@ -81,7 +81,8 @@ def watch_csrs():
                                     print("Invalid Ip %s from csr %s. Ignoring" % (ip, csr_name))
                                     continue
                 for rule in name_rules:
-                    if re.match(rule, cert_name):
+                    common_name = common_name.replace("system:node:", "")
+                    if re.match(rule, cert_name) or re.match(rule, common_name):
                         print("Signing %s cert %s" % (cert_type, csr_name))
                         body = certs_api.read_certificate_signing_request_status(csr_name)
                         now = datetime.now(timezone.utc).astimezone()
