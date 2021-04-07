@@ -28,6 +28,9 @@ labels:
 - competent: indeed
 ```
 
+Additionally, the field `runonce` can be set to true to only label matching nodes the first time, and then stop handling labels (this is accomplished by using the extra label autolabelled and skipping the nodes that have it)
+
+
 ### Matching label based rules
 
 Rule is indicated as a list of matchlabels to be found in the node matching, and a list of labels to add:
