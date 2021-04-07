@@ -27,8 +27,15 @@ def watch_nodes():
             node_labels = obj_dict['metadata']['labels']
             add_labels = {}
             for name in name_rules:
+                runonce = True if name in runonces else False
+                if runonce and 'autolabelled' in node_labels:
+                    print("Skipping %s because of runonce" % node_name)
+                    continue
                 if re.match(name, node_name):
-                    add_labels.update(name_rules[name])
+                    final_rules = name_rules[name].copy()
+                    if runonce:
+                        final_rules.update({'autolabelled': ''})
+                    add_labels.update(final_rules)
             mismatch = False
             for entry in label_rules:
                 matchlabels = label_rules[entry]['matchlabels']
@@ -69,12 +76,13 @@ if __name__ == "__main__":
         else:
             print(e)
         print("No rules defined, using default worker one")
-        config_map_data = {'rules1.properties': 'name: .*worker.*\nlabels:\n- node-role.kubernetes.io/worker=\n'}
+        config_map_data = {'rules1.properties': 'name: .*worker.*\nlabels:\n- node-role.kubernetes.io/worker\n'}
     name_rules = {}
     label_rules = {}
+    runonces = []
     if not config_map_data:
         print("No rules defined, using default worker one")
-        config_map_data = {'rules1.properties': 'name: .*worker.*\nlabels:\n- node-role.kubernetes.io/worker=\n'}
+        config_map_data = {'rules1.properties': 'name: .*worker.*\nlabels:\n- node-role.kubernetes.io/worker\n'}
     for entry in config_map_data:
         try:
             data = yaml.safe_load(config_map_data[entry])
@@ -96,6 +104,9 @@ if __name__ == "__main__":
         if newname is not None:
             print("Handling name rule %s with labels %s" % (newname, goodlabels))
             name_rules[newname] = goodlabels
+            if data.get('runonce', False):
+                runonces.append(newname)
+                print("Applying runonce mode to rule %s" % newname)
         if newmatchlabels is not None:
             print("Handling matchlabels rule %s with labels %s" % (newmatchlabels, goodlabels))
             matchlabels = []
