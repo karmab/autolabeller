@@ -13,6 +13,10 @@ data:
     name: .*worker.*
     labels:
     - node-role.kubernetes.io/worker
+    name: .*master.*
+    labels:
+    - node-role.kubernetes.io/control-plane
+    - node-role.kubernetes.io/master
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
