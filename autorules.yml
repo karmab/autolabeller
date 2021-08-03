@@ -13,6 +13,7 @@ data:
     name: .*worker.*
     labels:
     - node-role.kubernetes.io/worker
+  rules2.properties: |
     name: .*master.*
     labels:
     - node-role.kubernetes.io/control-plane
