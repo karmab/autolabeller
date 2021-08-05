@@ -54,8 +54,8 @@ def watch_csrs():
                 cert_name = str(csr.get_subject())
                 common_names = [e[1].decode() for e in csr.get_subject().get_components() if e[0].decode() == 'CN']
                 if not common_names:
-                        print("Invalid common name in csr %s. Ignoring" % csr_name)
-                        continue
+                    print("Invalid common name in csr %s. Ignoring" % csr_name)
+                    continue
                 else:
                     common_name = common_names[0]
                 if 'server auth' in usages:
@@ -93,7 +93,10 @@ def watch_csrs():
                                                                                               reason=reason,
                                                                                               type='Approved')
                         body.status.conditions = [approval_condition]
-                        certs_api.replace_certificate_signing_request_approval(csr_name, body)
+                        try:
+                            certs_api.replace_certificate_signing_request_approval(csr_name, body)
+                        except Exception as e:
+                            print("Hit %s when signing cert %s. This will be retried" % (e, csr_name))
                         break
                 continue
 
@@ -129,8 +132,8 @@ if __name__ == "__main__":
     for entry in config_map_data:
         try:
             data = yaml.safe_load(config_map_data[entry])
-        except yaml.scanner.ScannerError as err:
-            print("Incorrect configmap. Leaving")
+        except yaml.scanner.ScannerError as e:
+            print("Incorrect configmap. Hit %s" % e)
             os._exit(1)
         if 'name' in data:
             newname = data['name']
