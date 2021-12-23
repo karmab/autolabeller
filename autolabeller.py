@@ -1,5 +1,6 @@
 import yaml
 from kubernetes import client, config, watch
+from fnmatch import fnmatch
 import os
 import re
 import threading
@@ -31,8 +32,20 @@ def watch_nodes():
                 if runonce and 'autolabelled' in node_labels:
                     print("Skipping %s because of runonce" % node_name)
                     continue
-                if re.match(name, node_name):
-                    final_rules = name_rules[name].copy()
+                match = re.match(name, node_name)
+                if match or fnmatch(node_name, name):
+                    if match:
+                        current_rules = name_rules.copy()
+                        if match.groups() is not None:
+                            for idx, group in enumerate(match.groups()):
+                                num = idx + 1
+                                new_rule = {}
+                                for key in current_rules[name]:
+                                    newkey = key.replace('\\%d' % num, group)
+                                    newvalue = current_rules[name][key].replace('\\%d' % num, group)
+                                    new_rule[newkey] = newvalue
+                                current_rules[name] = new_rule
+                    final_rules = current_rules[name].copy()
                     if runonce:
                         final_rules.update({'autolabelled': ''})
                     add_labels.update(final_rules)
@@ -86,7 +99,7 @@ if __name__ == "__main__":
     for entry in config_map_data:
         try:
             data = yaml.safe_load(config_map_data[entry])
-        except yaml.scanner.ScannerError as err:
+        except yaml.scanner.ScannerError:
             print("Incorrect configmap. Leaving")
             os._exit(1)
         newname, newmatchlabels, newlabels = data.get('name'), data.get('matchlabels'), data.get('labels')
