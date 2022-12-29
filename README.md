@@ -37,10 +37,10 @@ Rule is indicated as a list of matchlabels to be found in the node matching, and
 
 ```
 matchlabels:
-- node-role.kubernetes.io/masterx
-- node-role.kubernetes.io/mastery
+- node-role.kubernetes.io/nodex
+- node-role.kubernetes.io/nodey
 labels:
-- node-role.kubernetes.io/mastermind
+- node-role.kubernetes.io/nodez
 ```
 
 ### Allowing specific networks

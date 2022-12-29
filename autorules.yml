@@ -14,7 +14,7 @@ data:
     labels:
     - node-role.kubernetes.io/worker
   rules2.properties: |
-    name: .*master.*
+    name: .*ctlplane.*
     labels:
     - node-role.kubernetes.io/control-plane
     - node-role.kubernetes.io/master
