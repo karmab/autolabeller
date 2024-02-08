@@ -50,6 +50,6 @@ spec:
         operator: Exists
       containers:
       - name: autosigner
-        image: quay.io/karmab/autosigner:latest
+        image: quay.io/karmab/autosigner:multi
       - name: autolabeller
-        image: quay.io/karmab/autolabeller:latest
+        image: quay.io/karmab/autolabeller:multi

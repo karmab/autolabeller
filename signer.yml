@@ -16,4 +16,4 @@ spec:
     spec:
       containers:
       - name: autosigner
-        image: karmab/autosigner:latest
+        image: karmab/autosigner:multi

@@ -16,4 +16,4 @@ spec:
     spec:
       containers:
       - name: autolabeller
-        image: karmab/autolabeller:latest
+        image: karmab/autolabeller:multi
